@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍽️ Seafood Grotto - Order System</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f0f1a;color:#e8e8e8;min-height:100vh;padding-bottom:70px;}
+.nav{position:fixed;top:0;left:0;right:0;z-index:1000;background:linear-gradient(135deg,#1a1a3e,#16213e);display:flex;align-items:center;justify-content:space-between;padding:8px 10px;box-shadow:0 2px 15px rgba(0,0,0,.5);}
+.nav-title{font-size:16px;font-weight:700;color:#ffd700;white-space:nowrap;}
+.nav-btns{display:flex;gap:4px;flex-wrap:wrap;}
+.nav-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:5px 8px;border-radius:8px;font-size:11px;cursor:pointer;position:relative;transition:all .2s;white-space:nowrap;}
+.nav-btn:hover{background:rgba(255,255,255,.2);}
+.nav-btn.active{background:#ffd700;color:#000;border-color:#ffd700;font-weight:600;}
+.badge{position:absolute;top:-6px;right:-6px;background:#ff4757;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700;}
+.sync-status{font-size:9px;padding:2px 6px;border-radius:4px;margin-left:6px;font-weight:600;display:inline-flex;align-items:center;gap:3px;}
+.sync-status.online{background:rgba(46,213,115,.2);color:#2ed573;}
+.sync-status.offline{background:rgba(255,71,87,.2);color:#ff4757;}
+.sync-status .dot{width:6px;height:6px;border-radius:50%;display:inline-block;}
+.sync-status.online .dot{background:#2ed573;animation:pulse 2s infinite;}
+.sync-status.offline .dot{background:#ff4757;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.page{display:none;padding:56px 10px 20px;}
+.page.active{display:block;}
+.menu-switch-bar{display:flex;gap:6px;margin-bottom:12px;padding:4px 0;}
+.menu-switch-btn{flex:1;padding:10px;border-radius:10px;border:2px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#ccc;font-size:13px;font-weight:600;cursor:pointer;text-align:center;transition:all .2s;}
+.menu-switch-btn:hover{border-color:#ffd700;color:#ffd700;}
+.menu-switch-btn.active{background:#ffd700;color:#000;border-color:#ffd700;}
+.menu-switch-btn.takeaway-btn.active{background:#2ed573;color:#000;border-color:#2ed573;}
+.menu-switch-btn.saturday-btn.active{background:#ffa502;color:#000;border-color:#ffa502;}
+.category-title{font-size:16px;font-weight:700;color:#ffd700;padding:12px 4px 8px;border-bottom:2px solid #ffd700;margin-top:16px;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.category-title:first-child{margin-top:0;}
+.menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:8px;}
+.menu-item{background:linear-gradient(145deg,#1e1e3a,#252550);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px;position:relative;text-align:center;user-select:none;min-height:70px;display:flex;flex-direction:column;justify-content:center;align-items:center;transition:all .15s;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.menu-item:hover{border-color:#ffd700;background:linear-gradient(145deg,#24244a,#2a2a5a);}
+.menu-item:active{transform:scale(0.97);}
+.menu-item .name{font-size:12px;font-weight:600;line-height:1.3;margin-bottom:4px;color:#fff;pointer-events:none;}
+.menu-item .price{font-size:14px;font-weight:700;color:#ffd700;pointer-events:none;}
+.menu-item .qty-badge{position:absolute;top:-6px;right:-6px;background:#ff4757;color:#fff;border-radius:50%;width:24px;height:24px;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 2px 6px rgba(255,71,87,.5);pointer-events:none;}
+.menu-item .desc{font-size:9px;color:#aaa;line-height:1.2;margin-top:2px;pointer-events:none;}
+.menu-item.takeaway-item{border-color:rgba(46,213,115,.15);}
+.menu-item.takeaway-item:hover{border-color:#2ed573;background:linear-gradient(145deg,#1a2e1a,#1e3a2e);}
+.menu-item.saturday-item{border-color:rgba(255,165,2,.15);}
+.menu-item.saturday-item:hover{border-color:#ffa502;background:linear-gradient(145deg,#2e2a1a,#3a301e);}
+.menu-item-controls{display:flex;align-items:center;gap:8px;margin-top:6px;pointer-events:auto;position:relative;z-index:2;}
+.menu-item-controls button{width:30px;height:30px;border-radius:50%;border:none;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;pointer-events:auto;}
+.menu-item-controls .mi-minus{background:#ff4757;color:#fff;}
+.menu-item-controls .mi-minus:hover{background:#ff6b7a;}
+.menu-item-controls .mi-minus:active{transform:scale(0.9);}
+.menu-item-controls .mi-plus{background:#2ed573;color:#fff;}
+.menu-item-controls .mi-plus:hover{background:#7bed9f;}
+.menu-item-controls .mi-plus:active{transform:scale(0.9);}
+.menu-item-controls .mi-qty{font-size:15px;font-weight:700;min-width:22px;text-align:center;color:#ffd700;pointer-events:none;}
+.cart-section{background:#1a1a35;border-radius:12px;padding:14px;margin-bottom:12px;}
+.cart-section-title{font-size:15px;font-weight:700;color:#ffd700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.cart-item-card{background:linear-gradient(145deg,#1c1c38,#222248);border:2px solid rgba(255,215,0,.15);border-radius:12px;padding:12px;margin-bottom:10px;transition:all .2s;}
+.cart-item-card:last-child{margin-bottom:0;}
+.cart-item-card:hover{border-color:rgba(255,215,0,.3);}
+.cart-item-card.split-card{border-left:4px solid #ffd700;}
+.cart-item-card.simple-card{border-left:4px solid #3498db;}
+.cart-item-card.takeaway-card{border-left:4px solid #2ed573;border-color:rgba(46,213,115,.2);}
+.cart-item-card.takeaway-card:hover{border-color:rgba(46,213,115,.35);}
+.cart-item-card.saturday-card{border-left:4px solid #ffa502;border-color:rgba(255,165,2,.2);}
+.cart-item-card.saturday-card:hover{border-color:rgba(255,165,2,.35);}
+.cart-item-row{display:flex;align-items:center;width:100%;justify-content:space-between;}
+.cart-item-name{flex:1;font-size:13px;font-weight:600;min-width:0;padding-right:8px;}
+.cart-item-price{font-size:12px;color:#aaa;width:55px;text-align:right;margin-right:8px;}
+.cart-item-controls{display:flex;align-items:center;gap:6px;}
+.cart-item-controls button{width:28px;height:28px;border-radius:50%;border:none;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.btn-minus{background:#ff4757;color:#fff;}
+.btn-minus:hover{background:#ff6b7a;}
+.btn-plus{background:#2ed573;color:#fff;}
+.btn-plus:hover{background:#7bed9f;}
+.cart-item-qty{font-size:14px;font-weight:700;min-width:20px;text-align:center;}
+.cart-item-subtotal{font-size:14px;font-weight:700;color:#ffd700;width:65px;text-align:right;margin-left:8px;}
+.cart-delete{background:none;border:none;color:#ff4757;font-size:18px;cursor:pointer;margin-left:6px;padding:4px;}
+.cart-item-index{font-size:10px;color:#ffd700;background:rgba(255,215,0,.15);padding:2px 7px;border-radius:6px;margin-left:6px;font-weight:700;}
+.cart-options-area{background:rgba(255,255,255,.03);border-radius:8px;padding:8px 10px;margin-top:8px;}
+.cook-row{width:100%;padding:4px 0 2px;display:flex;flex-wrap:wrap;gap:4px;}
+.cook-btn{padding:4px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#aaa;font-size:11px;cursor:pointer;transition:all .2s;}
+.cook-btn:hover{border-color:#ffa502;color:#ffa502;}
+.cook-btn.selected{background:#ffa502;color:#000;border-color:#ffa502;font-weight:600;}
+.egg-row{width:100%;padding:4px 0 2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.egg-label{font-size:11px;color:#7bed9f;}
+.egg-controls{display:flex;align-items:center;gap:5px;}
+.egg-controls button{width:24px;height:24px;border-radius:50%;border:none;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.egg-controls .egg-minus{background:rgba(255,71,87,.6);color:#fff;}
+.egg-controls .egg-plus{background:rgba(46,213,115,.6);color:#fff;}
+.egg-controls .egg-qty{font-size:13px;font-weight:700;min-width:18px;text-align:center;color:#7bed9f;}
+.egg-style-row{display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;}
+.egg-style-btn{padding:3px 10px;border-radius:10px;border:1px solid rgba(123,237,159,.2);background:rgba(123,237,159,.05);color:#7bed9f;font-size:10px;cursor:pointer;transition:all .2s;}
+.egg-style-btn:hover{border-color:#7bed9f;}
+.egg-style-btn.selected{background:#7bed9f;color:#000;border-color:#7bed9f;font-weight:600;}
+.cart-source-tag{font-size:9px;padding:1px 6px;border-radius:4px;margin-left:6px;font-weight:600;}
+.tag-main{background:rgba(255,215,0,.15);color:#ffd700;}
+.tag-takeaway{background:rgba(46,213,115,.15);color:#2ed573;}
+.tag-saturday{background:rgba(255,165,2,.15);color:#ffa502;}
+.fee-row{width:100%;padding:4px 0 2px;display:flex;align-items:center;gap:8px;}
+.fee-toggle{padding:4px 12px;border-radius:14px;border:1px solid rgba(52,152,219,.3);background:rgba(52,152,219,.08);color:#3498db;font-size:11px;cursor:pointer;transition:all .2s;user-select:none;}
+.fee-toggle:hover{border-color:#3498db;}
+.fee-toggle.active{background:#3498db;color:#fff;border-color:#3498db;font-weight:600;}
+.fee-label{font-size:11px;color:#3498db;}
+.drink-row{width:100%;padding:6px 0 2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.drink-label{font-size:13px;color:#e8a83e;font-weight:600;}
+.drink-btn{padding:5px 14px;border-radius:16px;border:2px solid rgba(232,168,62,.25);background:rgba(232,168,62,.06);color:#e8a83e;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;user-select:none;}
+.drink-btn:hover{border-color:#e8a83e;}
+.drink-btn.selected{background:#e8a83e;color:#000;border-color:#e8a83e;font-weight:700;}
+.sugar-row{width:100%;padding:4px 0 2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.sugar-label{font-size:12px;color:#dfe6e9;font-weight:500;}
+.sugar-controls{display:flex;align-items:center;gap:5px;}
+.sugar-controls button{width:24px;height:24px;border-radius:50%;border:none;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.sugar-controls .sugar-minus{background:rgba(255,71,87,.5);color:#fff;}
+.sugar-controls .sugar-plus{background:rgba(46,213,115,.5);color:#fff;}
+.sugar-controls .sugar-qty{font-size:13px;font-weight:700;min-width:18px;text-align:center;color:#dfe6e9;}
+.cart-empty{text-align:center;padding:40px 20px;color:#666;font-size:14px;}
+.sauce-item{display:flex;align-items:center;justify-content:space-between;padding:6px 0;}
+.sauce-item-name{font-size:13px;flex:1;}
+.sauce-item-label{font-size:11px;color:#888;margin-right:10px;}
+.extras-drink{display:flex;align-items:center;justify-content:space-between;padding:6px 0;}
+.extras-drink-name{font-size:13px;flex:1;}
+.extras-drink-price{font-size:12px;color:#aaa;margin-right:10px;}
+.notes-area{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:10px;color:#e8e8e8;font-size:13px;font-family:inherit;resize:vertical;min-height:60px;margin-top:6px;}
+.notes-area:focus{outline:none;border-color:#ffd700;}
+.notes-area::placeholder{color:#555;}
+.cart-total-area{background:linear-gradient(135deg,#1a1a3e,#0f0f2a);border-radius:12px;padding:14px;margin-top:12px;}
+.total-line{display:flex;justify-content:space-between;padding:4px 0;font-size:14px;}
+.total-line.grand{font-size:18px;font-weight:700;color:#ffd700;border-top:2px solid #ffd700;padding-top:10px;margin-top:8px;}
+.btn-primary{width:100%;padding:14px;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:10px;}
+.btn-primary.gold{background:linear-gradient(135deg,#ffd700,#ffaa00);color:#000;}
+.btn-primary.gold:hover{background:linear-gradient(135deg,#ffaa00,#ff8800);}
+.btn-primary.green{background:linear-gradient(135deg,#2ed573,#17a053);color:#fff;}
+.btn-primary.green:hover{background:linear-gradient(135deg,#17a053,#128a43);}
+.btn-primary.blue{background:linear-gradient(135deg,#3498db,#2980b9);color:#fff;}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;}
+.btn-row{display:flex;gap:8px;margin-top:10px;}
+.btn-row .btn-primary{flex:1;}
+.order-preview{background:#1a1a35;border-radius:12px;padding:14px;margin-bottom:12px;}
+.order-line{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,.04);}
+.order-line .ol-name{flex:1;}
+.order-line .ol-qty{width:40px;text-align:center;color:#aaa;}
+.order-line .ol-price{width:60px;text-align:right;color:#ffd700;font-weight:600;}
+.order-line-sub{font-size:10px;color:#ffa502;padding:0 0 4px 12px;}
+.order-line-egg{font-size:10px;color:#7bed9f;padding:0 0 4px 12px;}
+.order-line-fee{font-size:10px;color:#3498db;padding:0 0 4px 12px;}
+.order-line-drink{font-size:11px;color:#e8a83e;padding:0 0 4px 12px;font-weight:500;}
+.table-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;}
+.table-btn{padding:14px;border-radius:10px;border:2px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#ccc;font-size:14px;font-weight:600;cursor:pointer;text-align:center;transition:all .2s;}
+.table-btn:hover{border-color:#ffd700;color:#ffd700;}
+.table-btn.selected{background:#ffd700;color:#000;border-color:#ffd700;}
+.table-btn.takeaway{border-color:rgba(46,213,115,.3);color:#2ed573;}
+.table-btn.takeaway:hover{border-color:#2ed573;}
+.table-btn.takeaway.selected{background:#2ed573;color:#000;border-color:#2ed573;}
+.table-btn.pending{border-color:rgba(255,165,2,.3);color:#ffa502;}
+.table-btn.pending:hover{border-color:#ffa502;}
+.table-btn.pending.selected{background:#ffa502;color:#000;border-color:#ffa502;}
+.order-card{background:#1a1a35;border-radius:12px;margin-bottom:10px;overflow:hidden;border:1px solid rgba(255,255,255,.06);}
+.order-card-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;transition:background .2s;}
+.order-card-header:hover{background:rgba(255,255,255,.03);}
+.order-card-header .och-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.order-card-header .order-id{font-weight:700;color:#ffd700;font-size:14px;}
+.order-card-header .order-table{background:rgba(255,255,255,.1);padding:2px 8px;border-radius:6px;font-size:12px;}
+.order-card-header .order-table.takeaway{background:rgba(46,213,115,.2);color:#2ed573;}
+.order-card-header .order-table.pending{background:rgba(255,165,2,.2);color:#ffa502;}
+.order-card-header .order-time{color:#888;font-size:12px;}
+.order-card-header .order-total-small{font-weight:700;color:#ffd700;font-size:14px;}
+.order-card-header .expand-icon{color:#888;font-size:18px;transition:transform .2s;}
+.order-card.expanded .expand-icon{transform:rotate(180deg);}
+.order-card-body{display:none;padding:0 14px 14px;border-top:1px solid rgba(255,255,255,.06);}
+.order-card.expanded .order-card-body{display:block;padding-top:10px;}
+.order-card-body .order-line{font-size:12px;}
+.order-card-body .sauce-line{font-size:11px;color:#aaa;padding:4px 0;}
+.order-card-body .notes-display{font-size:11px;color:#ffa502;padding:6px 0;font-style:italic;}
+.btn-complete{width:100%;padding:10px;border:none;border-radius:8px;background:linear-gradient(135deg,#2ed573,#17a053);color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;transition:all .2s;}
+.btn-complete:hover{background:linear-gradient(135deg,#17a053,#128a43);}
+.btn-delete-order{width:100%;padding:10px;border:none;border-radius:8px;background:rgba(255,71,87,.15);color:#ff4757;font-size:13px;font-weight:600;cursor:pointer;margin-top:6px;transition:all .2s;border:1px solid rgba(255,71,87,.3);}
+.btn-delete-order:hover{background:rgba(255,71,87,.3);}
+.completed-card{opacity:.85;}
+.stats-bar{background:linear-gradient(135deg,#ffd700,#ffaa00);color:#000;border-radius:12px;padding:14px;margin-bottom:14px;display:flex;justify-content:space-around;text-align:center;}
+.stats-bar .stat-num{font-size:22px;font-weight:800;}
+.stats-bar .stat-label{font-size:11px;font-weight:500;margin-top:2px;}
+.set-btn{padding:3px 10px;border-radius:14px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#aaa;font-size:11px;cursor:pointer;transition:all .2s;user-select:none;white-space:nowrap;}
+.set-btn:hover{border-color:#e056fd;color:#e056fd;}
+.set-btn.done{background:#e056fd;color:#fff;border-color:#e056fd;font-weight:700;}
+.set-indicator{font-size:11px;color:#e056fd;font-weight:600;}
+.price-menu-tab{display:flex;gap:6px;margin-bottom:12px;}
+.price-menu-tab-btn{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#ccc;font-size:12px;font-weight:600;cursor:pointer;text-align:center;}
+.price-menu-tab-btn.active{background:#ffd700;color:#000;border-color:#ffd700;}
+.price-cat-title{font-size:14px;font-weight:700;color:#ffd700;padding:10px 0 6px;border-bottom:1px solid rgba(255,215,0,.3);margin-top:12px;}
+.price-row{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);gap:8px;}
+.price-row .pr-name{flex:1;font-size:13px;min-width:0;}
+.price-row .pr-original{font-size:11px;color:#666;text-decoration:line-through;width:50px;text-align:right;}
+.price-row .pr-input{width:70px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:6px 8px;color:#ffd700;font-size:14px;font-weight:700;text-align:right;font-family:inherit;}
+.price-row .pr-input:focus{outline:none;border-color:#ffd700;}
+.price-row .pr-input.changed{border-color:#2ed573;background:rgba(46,213,115,.1);}
+.price-row .pr-reset{background:none;border:none;color:#ff4757;font-size:14px;cursor:pointer;padding:4px;opacity:.5;}
+.price-row .pr-reset:hover{opacity:1;}
+.price-save-msg{text-align:center;color:#2ed573;font-size:13px;font-weight:600;padding:8px;opacity:0;transition:opacity .3s;}
+.price-save-msg.show{opacity:1;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2000;justify-content:center;align-items:center;}
+.modal-overlay.show{display:flex;}
+.modal{background:#1e1e3a;border-radius:16px;padding:24px;max-width:320px;width:90%;text-align:center;}
+.modal h3{margin-bottom:12px;color:#ffd700;}
+.modal p{margin-bottom:16px;font-size:14px;color:#ccc;}
+.modal .btn-row{justify-content:center;}
+.modal .btn-sm{padding:10px 24px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;}
+.modal .btn-cancel{background:rgba(255,255,255,.1);color:#ccc;}
+.modal .btn-confirm{background:#2ed573;color:#fff;}
+.modal .btn-danger{background:#ff4757;color:#fff;}
+.toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#2ed573;color:#000;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:3000;opacity:0;transition:opacity .3s;pointer-events:none;}
+.toast.show{opacity:1;}
+.toast.warn{background:#ffa502;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:#0f0f1a;}::-webkit-scrollbar-thumb{background:#333;border-radius:4px;}
+@media(min-width:768px){.menu-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));}.page{padding:56px 20px 20px;max-width:900px;margin:0 auto;}}
+</style>
+</head>
+<body>
+<nav class="nav">
+<div class="nav-title">🍽️ Seafood Grotto <span class="sync-status offline" id="syncStatus"><span class="dot"></span>Connecting...</span></div>
+<div class="nav-btns">
+<button class="nav-btn active" onclick="showPage('menu')">📋Menu</button>
+<button class="nav-btn" onclick="showPage('cart')">🛒Cart<span class="badge" id="cartBadge" style="display:none">0</span></button>
+<button class="nav-btn" onclick="showPage('active')">🔥Active<span class="badge" id="activeBadge" style="display:none">0</span></button>
+<button class="nav-btn" onclick="showPage('completed')">✅Done</button>
+<button class="nav-btn" onclick="showPage('prices')">💲Price</button>
+</div>
+</nav>
+<div class="page active" id="page-menu"></div>
+<div class="page" id="page-cart"></div>
+<div class="page" id="page-preview"></div>
+<div class="page" id="page-active"></div>
+<div class="page" id="page-completed"></div>
+<div class="page" id="page-prices"></div>
+<div class="modal-overlay" id="confirmModal">
+<div class="modal"><h3 id="modalTitle">Confirm</h3><p id="modalMsg">Are you sure?</p>
+<div class="btn-row"><button class="btn-sm btn-cancel" onclick="closeModal()">Cancel</button><button class="btn-sm btn-confirm" id="modalConfirmBtn">Confirm</button></div></div></div>
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+// ===== FIREBASE INIT =====
+const firebaseConfig = {
+  apiKey: "AIzaSyBX8YWKMoBZTPvQcr5IcXgE8C0U7EGJAuY",
+  authDomain: "seafood-grotto-order-system.firebaseapp.com",
+  databaseURL: "https://seafood-grotto-order-system-default-rtdb.firebaseio.com",
+  projectId: "seafood-grotto-order-system",
+  storageBucket: "seafood-grotto-order-system.firebasestorage.app",
+  messagingSenderId: "887993460809",
+  appId: "1:887993460809:web:2405471c5ee1d867577798",
+  measurementId: "G-2K9F4L56CL"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const ordersRef = db.ref('orders');
+const counterRef = db.ref('orderCounter');
+const pricesRef = db.ref('prices');
+const connectedRef = db.ref('.info/connected');
+
+// ===== SYNC STATUS =====
+connectedRef.on('value', snap => {
+  const el = document.getElementById('syncStatus');
+  if (snap.val() === true) {
+    el.className = 'sync-status online';
+    el.innerHTML = '<span class="dot"></span>Live';
+  } else {
+    el.className = 'sync-status offline';
+    el.innerHTML = '<span class="dot"></span>Offline';
+  }
+});
+
+function showToast(msg, warn) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = warn ? 'toast warn show' : 'toast show';
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+// ===== CONSTANTS =====
+const EGG_PRICE=2.00,TW_SEAFOOD_FEE=0.50,TW_BOX_FEE=10.00;
+const TW_SEAFOOD_CAT="🐟 SEAFOODS",TW_BOX_CAT="📦 SEAFOOD TAKEAWAY BOXES",BREAKFAST_CAT="🍳 ALL-DAY BREAKFAST";
+const BREAKFAST_DRINKS=["Tea","Coffee","Milo"];
+
+const mainMenuDefault=[
+{category:"🍳 ALL-DAY BREAKFAST",items:[
+{id:"141a",name:"Breakfast 1/2 Fish Fillet",desc:"w/ Chips, 2 Eggs, Bread & Butter + Free Tea/Coffee/Milo",price:18},
+{id:"142b",name:"Breakfast Bacon",desc:"w/ Chips, 2 Eggs, Bread & Butter + Free Tea/Coffee/Milo",price:18},
+{id:"142c",name:"Breakfast Sausage",desc:"w/ Chips, 2 Eggs, Bread & Butter + Free Tea/Coffee/Milo",price:18}]},
+{category:"🐟 SEAFOOD MEALS",items:[
+{id:"143",name:"Fish of the Day",price:28},{id:"144",name:"Half Fish Meal",price:20},{id:"145",name:"Half Snapper Meal",price:23},{id:"146",name:"Snapper Meal",price:32.5},{id:"147",name:"Flounder",desc:"Whole",price:32.5},{id:"148",name:"Squid Meal",price:15},{id:"149",name:"Seafood Platter",desc:"2 fish,2 scallops,2 oysters,2 mussels,2 crabstick",price:60},{id:"150",name:"Sweet & Sour Fish Meal",price:25},{id:"208",name:"Seafood Mix Meal",price:32.5},
+{id:"151",name:"Oysters DF 1/2 Doz",price:28},{id:"152",name:"Oysters DF 1 Doz",price:40},{id:"153",name:"Oysters Natural 1/2 Doz",price:25},{id:"154",name:"Oysters Natural 1 Doz",price:38},
+{id:"155",name:"Scallops 1/2 Doz",price:35},{id:"156",name:"Scallops 1 Doz",price:55},
+{id:"157",name:"Mussels 1/2 Doz",price:20},{id:"158",name:"Mussels 1 Doz",price:30},
+{id:"162",name:"Bluff Oysters 1/2 Doz",price:38},{id:"170",name:"Bluff Oysters 1 Doz",desc:"When available",price:60}]},
+{category:"🧊 FRIDGE SPECIAL",items:[{id:"fs1",name:"Kina",price:36},{id:"fs2",name:"Oyster Box",price:25}]},
+{category:"🥩 FROM THE GRILL",items:[
+{id:"159",name:"Porterhouse Steak",price:29.5},{id:"160",name:"Rump Steak",price:29.5},{id:"161",name:"T-Bone Steak",price:32.5},{id:"163",name:"Mixed Grill",desc:"Porterhouse,sausage & bacon",price:30.5},{id:"164",name:"Weiner Schnitzel",price:28.5},{id:"166a",name:"Big Meat Breakfast",desc:"3 Sausage,3 Bacon,3 Eggs & Chips",price:28},{id:"166b",name:"Big Fish Breakfast",desc:"Fish,sausage,bacon,3 eggs & chips",price:28}]},
+{category:"🍗 ASSORTED MEALS",items:[
+{id:"167",name:"Chicken Nuggets",desc:"12pcs",price:20},{id:"169",name:"Chicken Schnitzel",desc:"2 Schnitzels",price:20.5},{id:"171",name:"Sausages (3) & Chips",price:20},{id:"220a",name:"Calamari Meal",price:15},{id:"172",name:"Bacon, 3 Eggs & Chips",price:20.5},{id:"219",name:"Egg Benedict",price:18}]},
+{category:"➕ EXTRAS",desc:"Must be ordered with a meal",items:[
+{id:"185",name:"Take Away Fish",price:7.5},{id:"186",name:"Snapper",price:10},{id:"187",name:"Oysters",price:2.5},{id:"188",name:"Mussels",price:2},{id:"189",name:"Scallops",price:3.5},{id:"190",name:"Steak",price:15},{id:"191",name:"Sausage",price:4.5},{id:"192",name:"Slice of Bacon",price:5},{id:"193",name:"Hot Dog",price:3.5},{id:"194",name:"Giant Mussel Fritter",price:6.5},{id:"195",name:"Chicken Nugget",price:1},{id:"196",name:"Gurnard/Tarakihi",price:8.5},{id:"197",name:"Hash Brown",price:2},{id:"198",name:"Egg",price:2},{id:"199",name:"Mushrooms",price:4.5},{id:"200",name:"Tomatoes",price:4.5},{id:"201",name:"Onions",price:2.5},{id:"202",name:"Bread & Butter",price:.5},{id:"203",name:"Side Dish of Chips",price:6},{id:"204",name:"Side Salad",price:6}]},
+{category:"🍤 SIDE DISHES",items:[
+{id:"131",name:"Scallops 1/2 Doz Battered",price:21},{id:"132",name:"Bluff Oysters 1/2 Doz Natural",price:21.6},{id:"133",name:"Bluff Oysters 1 Doz Natural",price:43.2},{id:"134",name:"Pacific Oysters 1/2 Doz Battered",price:15},{id:"135",name:"Pacific Oysters 1 Doz Battered",price:30},{id:"136",name:"Mussels 1/2 Doz Natural",price:12},{id:"137",name:"Mussels 1/2 Doz Battered",price:12},{id:"138",name:"Prawn Twisters 1/2 Doz",price:12},{id:"140",name:"Shrimp Cocktail",price:15},{id:"220b",name:"Cream Paua",price:12}]},
+{category:"🍨 DESSERTS",desc:"Served with Icecream & Cream",items:[
+{id:"205",name:"Banana Boat",price:12},{id:"206",name:"Banana Fritter",price:12},{id:"d1",name:"Fruit Salad & Icecream",price:12},{id:"207",name:"Apple Pie & Ice Cream",price:12},{id:"d2",name:"Icecream Sundae",price:12},{id:"d3",name:"Deep Fried Chocolate Bar",price:12},{id:"d4",name:"Deep Fried Ice Cream",price:12}]},
+{category:"👶 CHILDREN'S MENU",items:[
+{id:"180",name:"Fish & Chips",price:9},{id:"181",name:"Bacon, Egg & Chips",price:9.5},{id:"182",name:"Chicken Nuggets, Chips",price:10},{id:"183",name:"Tiny-Tots Fish",price:6},{id:"184",name:"Chicken Schnitzel, Chips",price:10},{id:"c1",name:"2 Egg & Chips",price:9},{id:"c2",name:"Hot Dog & Chips",price:9},{id:"c3",name:"Burger & Chips",price:9}]},
+{category:"🍔 SNACKS",items:[
+{id:"173",name:"Big-Burger & Chips",price:15},{id:"165",name:"Steak-Burger & Chips",price:18},{id:"174",name:"Huge Mussel Fritter & Chips",price:12},{id:"175",name:"Sandwich & Chips",desc:"Fish, Steak, or Bacon",price:18},{id:"176",name:"Eggs (3) on Toast",price:9.5},{id:"178",name:"Wedges & Sour Cream",price:9.5},{id:"179",name:"Kumara Chips",price:10.5}]},
+{category:"☕ BEVERAGES",items:[
+{id:"212",name:"Iced Coffee",price:8.5},{id:"213",name:"Ice Cream Soda",price:6},{id:"b1",name:"Iced Chocolate",price:8.5},{id:"214",name:"Milkshake",price:7},{id:"218",name:"Thickshake",price:8.5},{id:"215",name:"Hot Chocolate",price:6.5},{id:"216",name:"Hot Drinks",desc:"Tea/Coffee/Milo",price:3},{id:"211",name:"Glass Cold Fresh Milk",price:2.5},{id:"b2",name:"Jug of Cold Fresh Water",price:0}]}
+];
+const takeawayMenuDefault=[
+{category:"🐟 SEAFOODS",items:[{id:"tw1",name:"Fish",price:7.5},{id:"tw2",name:"Snapper Fillet",price:9.5},{id:"tw3",name:"Tarakihi",price:8.5},{id:"tw4",name:"Battered Mussel",price:2},{id:"tw5",name:"Battered Oyster",price:2.5},{id:"tw6",name:"Scallops",price:3.5},{id:"tw7",name:"Crab Stick",price:1.5},{id:"tw8",name:"Squid Rings",price:1.5}]},
+{category:"🍟 FRITTERS, ROLLS ETC",items:[{id:"tw9",name:"Potato Fritter",price:1},{id:"tw10",name:"Paua Fritter",price:6.5},{id:"tw11",name:"Corn Fritter",price:2.5},{id:"tw12",name:"Hash Brown",price:2},{id:"tw13",name:"Chicken Pattie",price:4.5},{id:"tw14",name:"Battered Meat Pattie",price:4.5},{id:"tw15",name:"Spring Roll",price:2.5},{id:"tw16",name:"Curry Roll",price:2.5},{id:"tw17",name:"Mussel Fritter",price:6.5},{id:"tw18",name:"6 Onion Rings",price:3},{id:"tw19",name:"Chicken Nuggets",price:1},{id:"tw20",name:"Hot Dog",price:3.5},{id:"tw21",name:"Sausage Battered",price:3.5},{id:"tw22",name:"Sausage Plain",price:3},{id:"tw23",name:"Buttered Bread",price:.5}]},
+{category:"⭐ SPECIALS",items:[{id:"tw24",name:"Garlic Chips",price:6.5},{id:"tw25",name:"Kumara Chips",price:6.5},{id:"tw26",name:"Spicy Wedges",price:6},{id:"tw27",name:"Prawn Twisters",price:2},{id:"tw28",name:"Flo/Chips",price:28},{id:"tw29",name:"Vege Burger",price:5},{id:"tw30",name:"Sweet'n Sour Fish'n Chips",price:15},{id:"tw31",name:"Prawn Cutlets",price:1.5},{id:"tw32",name:"Garlic Sauce",price:3},{id:"tw33",name:"Sour Cream",price:2.5},{id:"tw34",name:"Chips (minimum)",price:4},{id:"tw57",name:"Tartare Sauce",price:3.5},{id:"tw58",name:"Black Sauce",price:3.5},{id:"tw59",name:"Tomato Sauce",price:3.5},{id:"tw60",name:"Seafood Sauce",price:3.5}]},
+{category:"🥪 TOASTED SANDWICHES",items:[{id:"tw35",name:"Cheese Sandwich",price:4},{id:"tw36",name:"Cheese & Onion",price:4.5},{id:"tw37",name:"Cheese & Pineapple",price:4.5},{id:"tw38",name:"Steak Sandwich",price:5},{id:"tw39",name:"Bacon Sandwich",price:4.8},{id:"tw40",name:"Mushroom Sandwich",price:4.8},{id:"tw41",name:"Egg Sandwich",price:4},{id:"tw42",name:"Extra - Egg",price:2},{id:"tw43",name:"Extra - Meat Pattie",price:4.5},{id:"tw44",name:"Extra - Cheese",price:2},{id:"tw45",name:"Extra - Bacon",price:4.5}]},
+{category:"🍔 BURGERS",items:[{id:"tw46",name:"Hamburger",price:8},{id:"tw47",name:"Fish or Chicken Burger",price:10},{id:"tw48",name:"Steak Burger",price:10},{id:"tw49",name:"Hawaiian Burger",price:8.5},{id:"tw50",name:"Egg Burger",price:9},{id:"tw51",name:"Bacon Burger",price:8.5},{id:"tw52",name:"Cheese Burger",price:8.5},{id:"tw53",name:"Mushroom Burger",price:8.5},{id:"tw54",name:"Dbl Cheese Pattie w/ Mustard",price:12}]},
+{category:"🍬 SWEETS",items:[{id:"tw55",name:"Pineapple Rings",price:2},{id:"tw56",name:"Banana Fritter",price:2.5}]},
+{category:"🔥 TAKEAWAY SPECIALS",items:[{id:"tws1",name:"Flounder & Chips",price:28},{id:"tws2",name:"Mussel Fritter & Chips",price:8}]},
+{category:"📦 SEAFOOD TAKEAWAY BOXES",items:[{id:"twb1",name:"$15 Seafood Box",desc:"1 mussel,1 oyster,1 fish,1 crabstick,1 squid ring,chips",price:15},{id:"twb2",name:"$25 Seafood Box",desc:"2 mussels,2 oysters,2 crabsticks,2 fish,1 potato fritter,chips",price:25},{id:"twb3",name:"$35 Seafood Box",desc:"4 mussels,2 crabstick,3 fish,2 oysters,2 squid rings,chips,2 potato fritters",price:35}]}
+];
+const saturdayMenuDefault=[
+{category:"🏖️ SATURDAY OUTSIDE",items:[{id:"sat1",name:"Fish Kebab",price:4.5},{id:"sat2",name:"Paua Fritter",price:4.5},{id:"sat3",name:"Mussel Fritter",price:4.5},{id:"sat4",name:"Chips & Fries",price:3.5},{id:"sat5",name:"Hot Dog",price:3.5},{id:"sat6",name:"Big Bone",price:2.5},{id:"sat7",name:"Can",price:2.5}]}
+];
+
+function deepClone(m){return JSON.parse(JSON.stringify(m));}
+let savedPrices={};
+function applyPrices(m){m.forEach(c=>c.items.forEach(i=>{if(savedPrices[i.id]!==undefined)i.price=savedPrices[i.id];}));return m;}
+let mainMenu,takeawayMenu,saturdayMenu;
+function rebuildMenus(){mainMenu=applyPrices(deepClone(mainMenuDefault));takeawayMenu=applyPrices(deepClone(takeawayMenuDefault));saturdayMenu=applyPrices(deepClone(saturdayMenuDefault));buildLookups();}
+const extrasDrinks=[{id:"ex_can",name:"Can",price:2.5},{id:"ex_bottle",name:"Bottle",price:6},{id:"ex_ginger",name:"Ginger Beer",price:5},{id:"ex_water",name:"Water",price:0}];
+const sauceOptions=[{id:"sauce_tartare",name:"Tartare"},{id:"sauce_black",name:"Black"},{id:"sauce_seafood",name:"Seafood"},{id:"sauce_tomato",name:"Tomato"}];
+const cookRules=[
+{match:id=>{const n=(allItemLookup[id]||{}).name||'';return n.toLowerCase().includes('steak');},options:["Blue","Rare","Medium Rare","Medium","Medium Well","Well Done"]},
+{match:id=>{const n=(allItemLookup[id]||{}).name||'';return n.toLowerCase().includes('egg');},options:["Scramble","Fried","Poached"]},
+{match:id=>{const n=((allItemLookup[id]||{}).name||'').toLowerCase();return n.includes('oyster')||n.includes('mussel')||n.includes('scallop');},options:["Deep Fried","Pan Fried","Natural"]}
+];
+const eggStyles=["Scramble","Fried","Poached"];
+const tableOptions=[];
+for(let i=1;i<=11;i++)tableOptions.push({value:'Table '+i,label:'Table '+i,type:'table'});
+tableOptions.push({value:'Takeaway',label:'📦 Takeaway',type:'takeaway'});
+tableOptions.push({value:'Pending',label:'⏳ Pending',type:'pending'});
+
+let allItemLookup={},itemSourceMap={},itemCatMap={},originalPrices={};
+function buildLookups(){
+  allItemLookup={};itemSourceMap={};itemCatMap={};originalPrices={};
+  [mainMenuDefault,takeawayMenuDefault,saturdayMenuDefault].forEach(md=>md.forEach(c=>c.items.forEach(i=>{originalPrices[i.id]=i.price;})));
+  mainMenu.forEach(c=>c.items.forEach(i=>{allItemLookup[i.id]=i;itemSourceMap[i.id]='main';itemCatMap[i.id]=c.category;}));
+  takeawayMenu.forEach(c=>c.items.forEach(i=>{allItemLookup[i.id]=i;itemSourceMap[i.id]='takeaway';itemCatMap[i.id]=c.category;}));
+  saturdayMenu.forEach(c=>c.items.forEach(i=>{allItemLookup[i.id]=i;itemSourceMap[i.id]='saturday';itemCatMap[i.id]=c.category;}));
+}
+rebuildMenus();
+
+const noEggCats=["➕ EXTRAS","🍤 SIDE DISHES","🍨 DESSERTS","🍔 SNACKS","☕ BEVERAGES"];
+function canAddEgg(id){if(itemSourceMap[id]!=='main')return false;const c=itemCatMap[id];return c&&!noEggCats.includes(c);}
+function isBreakfast(id){return itemCatMap[id]===BREAKFAST_CAT;}
+function needsSplit(id){return canAddEgg(id)||isBreakfast(id);}
+function getCookOptions(id){if(itemSourceMap[id]==='saturday')return null;for(const r of cookRules){if(r.match(id))return r;}return null;}
+function getServiceFee(id){if(itemSourceMap[id]!=='takeaway')return 0;const c=itemCatMap[id];if(c===TW_SEAFOOD_CAT)return TW_SEAFOOD_FEE;if(c===TW_BOX_CAT)return TW_BOX_FEE;return 0;}
+function getTableClass(v){if(v==='Takeaway')return'takeaway';if(v==='Pending')return'pending';return'';}
+
+let cart={},extrasDrinkCart={},sauceCart={},orderNotes='',selectedTable=null,currentMenuTab='main';
+let orders=[];
+let orderCounter=0;
+let priceEditorTab='main';
+let expandedOrders={};
+let firebaseReady=false;
+
+function getCartQty(id){if(!cart[id])return 0;if(Array.isArray(cart[id]))return cart[id].length;return cart[id].qty||0;}
+function getTotalCartCount(){let c=0;Object.keys(cart).forEach(id=>{c+=getCartQty(id);});Object.keys(extrasDrinkCart).forEach(id=>{c+=(extrasDrinkCart[id]?.qty||0);});return c;}
+function getItemUnitPrice(id){return(allItemLookup[id]||{}).price||0;}
+function getSplitItemTotal(id,idx){return getItemUnitPrice(id)+(cart[id][idx].eggs||0)*EGG_PRICE;}
+function getSimpleItemTotal(id){const c=cart[id];if(!c)return 0;return getItemUnitPrice(id)*c.qty+(c.eatInFee?getServiceFee(id)*c.qty:0);}
+function calcFoodTotal(){let t=0;Object.keys(cart).forEach(id=>{if(!cart[id])return;if(Array.isArray(cart[id]))cart[id].forEach((u,i)=>{t+=getSplitItemTotal(id,i);});else t+=getSimpleItemTotal(id);});return t;}
+function calcFeeTotal(){let t=0;Object.keys(cart).forEach(id=>{if(!cart[id]||Array.isArray(cart[id]))return;const c=cart[id];if(c.eatInFee)t+=getServiceFee(id)*c.qty;});return t;}
+function getCardClass(id){const src=itemSourceMap[id];if(src==='takeaway')return'takeaway-card';if(src==='saturday')return'saturday-card';if(needsSplit(id))return'split-card';return'simple-card';}
+
+// ===== FIREBASE LISTENERS (REAL-TIME SYNC) =====
+ordersRef.on('value', snap => {
+  const data = snap.val();
+  if (data) {
+    orders = Object.keys(data).map(k => {
+      const o = data[k];
+      o._key = k;
+      o._expanded = !!expandedOrders[o.id];
+      return o;
+    });
+  } else {
+    orders = [];
+  }
+  firebaseReady = true;
+  refreshCurrentPage();
+  updateBadges();
+});
+
+counterRef.on('value', snap => {
+  const v = snap.val();
+  if (v !== null) orderCounter = v;
+});
+
+pricesRef.on('value', snap => {
+  const data = snap.val();
+  savedPrices = data || {};
+  rebuildMenus();
+  refreshCurrentPage();
+});
+
+function refreshCurrentPage() {
+  const active = document.querySelector('.page.active');
+  if (!active) return;
+  const id = active.id;
+  if (id === 'page-menu') renderMenu();
+  else if (id === 'page-cart') renderCart();
+  else if (id === 'page-preview') renderPreview();
+  else if (id === 'page-active') renderActiveOrders();
+  else if (id === 'page-completed') renderCompletedOrders();
+  else if (id === 'page-prices') renderPriceEditor();
+}
+
+// ===== FIREBASE WRITE HELPERS =====
+function fbSaveOrder(order) {
+  const key = order._key || ordersRef.push().key;
+  const clean = {...order};
+  delete clean._key;
+  delete clean._expanded;
+  ordersRef.child(key).set(clean);
+  return key;
+}
+function fbDeleteOrder(order) {
+  if (order._key) ordersRef.child(order._key).remove();
+}
+function fbUpdateOrder(order, updates) {
+  if (order._key) ordersRef.child(order._key).update(updates);
+}
+function fbSetCounter(val) {
+  counterRef.set(val);
+}
+function fbSavePrice(id, price) {
+  pricesRef.child(id).set(price);
+}
+function fbRemovePrice(id) {
+  pricesRef.child(id).remove();
+}
+function fbClearAllOrders() {
+  ordersRef.remove();
+  counterRef.set(0);
+}
+function fbResetAllPrices() {
+  pricesRef.remove();
+}
+
+// ===== RENDER =====
+function renderMenu(){
+  const el=document.getElementById('page-menu');let h='';
+  h+=`<div class="menu-switch-bar"><div class="menu-switch-btn ${currentMenuTab==='main'?'active':''}" onclick="switchMenu('main')">📋 Main Menu</div><div class="menu-switch-btn takeaway-btn ${currentMenuTab==='takeaway'?'active':''}" onclick="switchMenu('takeaway')">📦 Takeaway</div><div class="menu-switch-btn saturday-btn ${currentMenuTab==='saturday'?'active':''}" onclick="switchMenu('saturday')">🏖️ Saturday</div></div>`;
+  const data=currentMenuTab==='main'?mainMenu:currentMenuTab==='takeaway'?takeawayMenu:saturdayMenu;
+  const ic=currentMenuTab==='takeaway'?'takeaway-item':currentMenuTab==='saturday'?'saturday-item':'';
+  data.forEach(cat=>{
+    h+=`<div class="category-title">${cat.category}${cat.desc?`<span style="font-size:11px;color:#aaa;font-weight:400"> — ${cat.desc}</span>`:''}</div><div class="menu-grid">`;
+    cat.items.forEach(item=>{const qty=getCartQty(item.id);
+      h+=`<div class="menu-item ${ic}" onclick="menuItemClick(event,'${item.id}')">`;
+      if(qty>0)h+=`<div class="qty-badge">${qty}</div>`;
+      h+=`<div class="name">${item.name}</div><div class="price">$${item.price.toFixed(2)}</div>`;
+      if(item.desc)h+=`<div class="desc">${item.desc}</div>`;
+      if(qty>0)h+=`<div class="menu-item-controls"><button class="mi-minus" onclick="menuMinusClick(event,'${item.id}')">−</button><span class="mi-qty">${qty}</span><button class="mi-plus" onclick="menuPlusClick(event,'${item.id}')">+</button></div>`;
+      h+=`</div>`;});h+='</div>';});
+  el.innerHTML=h;
+}
+function switchMenu(t){currentMenuTab=t;renderMenu();}
+function menuItemClick(e,id){if(e.target.closest('.menu-item-controls'))return;addToCart(id);}
+function menuPlusClick(e,id){e.stopPropagation();addToCart(id);}
+function menuMinusClick(e,id){e.stopPropagation();menuMinus(id);}
+
+function renderCart(){
+  const el=document.getElementById('page-cart');
+  const ids=Object.keys(cart).filter(id=>getCartQty(id)>0);
+  const di=Object.keys(extrasDrinkCart).filter(k=>extrasDrinkCart[k].qty>0);
+  const has=ids.length>0||di.length>0;
+  let h='<div class="cart-section"><div class="cart-section-title">🛒 Cart Items</div>';
+  if(!ids.length)h+='<div class="cart-empty">No items yet. Go to Menu to add!</div>';
+  else ids.forEach(id=>{
+    const split=Array.isArray(cart[id]);const src=itemSourceMap[id];
+    const tagCls=src==='takeaway'?'tag-takeaway':src==='saturday'?'tag-saturday':'tag-main';
+    const tagTxt=src==='takeaway'?'TW':src==='saturday'?'SAT':'';
+    const price=getItemUnitPrice(id);const cr=getCookOptions(id);const se=canAddEgg(id);const ib=isBreakfast(id);const sf=getServiceFee(id);const cardCls=getCardClass(id);
+    if(split){const arr=cart[id];const showIdx=arr.length>1;
+      arr.forEach((u,idx)=>{const sub=getSplitItemTotal(id,idx);const eq=u.eggs||0;const sg=u.sugar||0;
+        h+=`<div class="cart-item-card ${cardCls}"><div class="cart-item-row"><div class="cart-item-name">${allItemLookup[id].name}${showIdx?`<span class="cart-item-index">#${idx+1}</span>`:''}${tagTxt?`<span class="cart-source-tag ${tagCls}">${tagTxt}</span>`:''}</div><div class="cart-item-price">$${price.toFixed(2)}</div><div class="cart-item-subtotal">$${sub.toFixed(2)}</div><button class="cart-delete" onclick="deleteSplitItem('${id}',${idx})">🗑️</button></div>`;
+        if(cr||se||ib){h+=`<div class="cart-options-area">`;
+          if(cr){h+='<div class="cook-row">';cr.options.forEach(o=>{h+=`<span class="cook-btn ${u.cook===o?'selected':''}" onclick="setSplitCook('${id}',${idx},'${o}')">${o}</span>`;});h+='</div>';}
+          if(se){h+=`<div class="egg-row"><span class="egg-label">🥚 +Egg ($${EGG_PRICE.toFixed(2)}):</span><div class="egg-controls"><button class="egg-minus" onclick="splitEggMinus('${id}',${idx})">−</button><span class="egg-qty">${eq}</span><button class="egg-plus" onclick="splitEggPlus('${id}',${idx})">+</button></div>`;if(eq>0){h+='<div class="egg-style-row">';eggStyles.forEach(s=>{h+=`<span class="egg-style-btn ${u.eggStyle===s?'selected':''}" onclick="setSplitEggStyle('${id}',${idx},'${s}')">${s}</span>`;});h+='</div>';}h+='</div>';}
+          if(ib){h+=`<div class="drink-row"><span class="drink-label">☕ Free drink:</span>`;BREAKFAST_DRINKS.forEach(d=>{h+=`<span class="drink-btn ${u.freeDrink===d?'selected':''}" onclick="setSplitDrink('${id}',${idx},'${d}')">${d}</span>`;});h+=`<span class="drink-btn ${u.freeDrink==='None'?'selected':''}" onclick="setSplitDrink('${id}',${idx},'None')">No drink</span></div>`;h+=`<div class="sugar-row"><span class="sugar-label">🍬 Sugar:</span><div class="sugar-controls"><button class="sugar-minus" onclick="splitSugarMinus('${id}',${idx})">−</button><span class="sugar-qty">${sg}</span><button class="sugar-plus" onclick="splitSugarPlus('${id}',${idx})">+</button></div>${sg>0?`<span style="font-size:11px;color:#dfe6e9;">${sg} sachet${sg>1?'s':''}</span>`:''}</div>`;}
+          h+=`</div>`;}h+=`</div>`;});
+    }else{const item=cart[id];const sub=getSimpleItemTotal(id);
+      h+=`<div class="cart-item-card ${cardCls}"><div class="cart-item-row"><div class="cart-item-name">${allItemLookup[id].name}${tagTxt?`<span class="cart-source-tag ${tagCls}">${tagTxt}</span>`:''}</div><div class="cart-item-price">$${price.toFixed(2)}</div><div class="cart-item-controls"><button class="btn-minus" onclick="simpleCartMinus('${id}')">−</button><span class="cart-item-qty">${item.qty}</span><button class="btn-plus" onclick="simpleCartPlus('${id}')">+</button></div><div class="cart-item-subtotal">$${sub.toFixed(2)}</div><button class="cart-delete" onclick="simpleCartDelete('${id}')">🗑️</button></div>`;
+      if(cr||sf>0){h+=`<div class="cart-options-area">`;if(cr){h+='<div class="cook-row">';cr.options.forEach(o=>{h+=`<span class="cook-btn ${item.cook===o?'selected':''}" onclick="setSimpleCook('${id}','${o}')">${o}</span>`;});h+='</div>';}if(sf>0){h+=`<div class="fee-row"><span class="fee-label">🍽️ Eat-in +$${sf.toFixed(2)}/ea:</span><span class="fee-toggle ${item.eatInFee?'active':''}" onclick="toggleSimpleFee('${id}')">${item.eatInFee?'✅ ON':'OFF'}</span>${item.eatInFee?`<span style="font-size:11px;color:#3498db;margin-left:auto;">+$${(sf*item.qty).toFixed(2)}</span>`:''}</div>`;}h+=`</div>`;}h+=`</div>`;}
+  });h+='</div>';
+  h+='<div class="cart-section"><div class="cart-section-title">🥤 Extras Drinks</div>';
+  extrasDrinks.forEach(d=>{const q=extrasDrinkCart[d.id]?extrasDrinkCart[d.id].qty:0;h+=`<div class="extras-drink"><div class="extras-drink-name">${d.name}</div><div class="extras-drink-price">${d.price>0?'$'+d.price.toFixed(2):'Free'}</div><div class="cart-item-controls"><button class="btn-minus" onclick="exDrinkMinus('${d.id}')">−</button><span class="cart-item-qty">${q}</span><button class="btn-plus" onclick="exDrinkPlus('${d.id}')">+</button></div><div class="cart-item-subtotal">$${(d.price*q).toFixed(2)}</div></div>`;});h+='</div>';
+  h+='<div class="cart-section"><div class="cart-section-title">📝 Notes</div><textarea class="notes-area" placeholder="Special requests..." onchange="orderNotes=this.value" oninput="orderNotes=this.value">'+orderNotes+'</textarea></div>';
+  const ft=calcFoodTotal(),dt=di.reduce((s,id)=>s+extrasDrinkCart[id].price*extrasDrinkCart[id].qty,0),feeT=calcFeeTotal();
+  h+='<div class="cart-total-area">';h+=`<div class="total-line"><span>Food & Items</span><span>$${(ft-feeT).toFixed(2)}</span></div>`;if(feeT>0)h+=`<div class="total-line"><span>🍽️ Eat-in Fees</span><span style="color:#3498db">+$${feeT.toFixed(2)}</span></div>`;h+=`<div class="total-line"><span>Extras Drinks</span><span>$${dt.toFixed(2)}</span></div>`;h+=`<div class="total-line grand"><span>TOTAL</span><span>$${(ft+dt).toFixed(2)}</span></div></div>`;
+  h+=`<div class="btn-row"><button class="btn-primary gold" onclick="showPage('menu')">← Menu</button><button class="btn-primary green" onclick="showPage('preview')" ${!has?'disabled':''}>Generate Order →</button></div>`;
+  el.innerHTML=h;
+}
+
+function renderPreview(){
+  const el=document.getElementById('page-preview');const ids=Object.keys(cart).filter(id=>getCartQty(id)>0);const di=Object.keys(extrasDrinkCart).filter(k=>extrasDrinkCart[k].qty>0);const si=Object.keys(sauceCart).filter(k=>sauceCart[k].qty>0);
+  let h='<div class="order-preview"><div class="cart-section-title">📄 Order Preview</div>';
+  ids.forEach(id=>{const split=Array.isArray(cart[id]);const price=getItemUnitPrice(id);const name=allItemLookup[id].name;
+    if(split){cart[id].forEach((u,idx)=>{const sub=getSplitItemTotal(id,idx);const eq=u.eggs||0;const ec=eq*EGG_PRICE;const sg=u.sugar||0;const showIdx=cart[id].length>1;
+      h+=`<div class="order-line"><span class="ol-name">${name}${showIdx?' #'+(idx+1):''}</span><span class="ol-qty">x1</span><span class="ol-price">$${sub.toFixed(2)}</span></div>`;
+      if(u.cook)h+=`<div class="order-line-sub">↳ ${u.cook}</div>`;if(eq>0)h+=`<div class="order-line-egg">🥚 +${eq} Egg${eq>1?'s':''}${u.eggStyle?' ('+u.eggStyle+')':''} — $${ec.toFixed(2)}</div>`;
+      if(u.freeDrink&&u.freeDrink!=='None'){let dt=`☕ Free: ${u.freeDrink}`;if(sg>0)dt+=` + ${sg} sugar`;h+=`<div class="order-line-drink">${dt}</div>`;}else if(sg>0)h+=`<div class="order-line-drink">🍬 ${sg} sugar</div>`;
+    });}else{const c=cart[id];const sf=getServiceFee(id);const fee=c.eatInFee?sf*c.qty:0;const sub=getSimpleItemTotal(id);
+      h+=`<div class="order-line"><span class="ol-name">${name}</span><span class="ol-qty">x${c.qty}</span><span class="ol-price">$${sub.toFixed(2)}</span></div>`;if(c.cook)h+=`<div class="order-line-sub">↳ ${c.cook}</div>`;if(fee>0)h+=`<div class="order-line-fee">🍽️ Eat-in fee +$${fee.toFixed(2)}</div>`;}});
+  di.forEach(id=>{const d=extrasDrinkCart[id];h+=`<div class="order-line"><span class="ol-name">${d.name}</span><span class="ol-qty">x${d.qty}</span><span class="ol-price">$${(d.price*d.qty).toFixed(2)}</span></div>`;});
+  if(si.length){h+=`<div style="padding:6px 0;font-size:12px;color:#aaa;border-top:1px solid rgba(255,255,255,.06);">🫙 ${si.map(id=>{const s=sauceOptions.find(x=>x.id===id);return s.name+' x'+sauceCart[id].qty;}).join(', ')}</div>`;}
+  if(orderNotes.trim())h+=`<div style="padding:6px 0;font-size:12px;color:#ffa502;border-top:1px solid rgba(255,255,255,.06);">📝 ${orderNotes}</div>`;
+  const ft=calcFoodTotal(),dt=di.reduce((s,id)=>s+extrasDrinkCart[id].price*extrasDrinkCart[id].qty,0);
+  h+=`<div class="total-line grand" style="margin-top:10px;border-top:2px solid #ffd700;padding-top:10px;"><span>TOTAL</span><span>$${(ft+dt).toFixed(2)}</span></div></div>`;
+  h+='<div class="cart-section"><div class="cart-section-title">🫙 Sauces (Free)</div>';sauceOptions.forEach(s=>{const q=sauceCart[s.id]?sauceCart[s.id].qty:0;h+=`<div class="sauce-item"><div class="sauce-item-name">${s.name}</div><div class="sauce-item-label">Free</div><div class="cart-item-controls"><button class="btn-minus" onclick="sauceMinus('${s.id}')">−</button><span class="cart-item-qty">${q}</span><button class="btn-plus" onclick="saucePlus('${s.id}')">+</button></div></div>`;});h+='</div>';
+  h+='<div class="cart-section"><div class="cart-section-title">🪑 Select Table / Type</div><div class="table-grid">';tableOptions.forEach(t=>{const sel=selectedTable===t.value?'selected':'';const cls=t.type==='takeaway'?'takeaway':t.type==='pending'?'pending':'';h+=`<div class="table-btn ${cls} ${sel}" onclick="selectTable('${t.value}')">${t.label}</div>`;});h+='</div></div>';
+  h+=`<div class="btn-row"><button class="btn-primary gold" onclick="showPage('cart')">← Back</button><button class="btn-primary green" onclick="confirmOrder()" ${!selectedTable?'disabled':''}>✅ Confirm</button></div>`;
+  el.innerHTML=h;
+}
+
+function renderActiveOrders(){
+  const el=document.getElementById('page-active');const ao=orders.filter(o=>o.status==='active');let h='';
+  if(!ao.length)h+='<div class="cart-empty" style="margin-top:40px;">No active orders.</div>';
+  else ao.forEach(o=>{h+=buildOrderCard(o,true);});
+  h+=`<div class="btn-row" style="margin-top:16px;"><button class="btn-primary gold" onclick="showPage('menu')">← New Order</button><button class="btn-primary blue" onclick="showPage('completed')">✅ Completed</button></div>`;
+  el.innerHTML=h;updateBadges();
+}
+function renderCompletedOrders(){
+  const el=document.getElementById('page-completed');const co=orders.filter(o=>o.status==='completed');let h='';const tr=co.reduce((s,o)=>s+o.total,0);
+  h+=`<div class="stats-bar"><div><div class="stat-num">${co.length}</div><div class="stat-label">Orders</div></div><div><div class="stat-num">$${tr.toFixed(2)}</div><div class="stat-label">Revenue</div></div></div>`;
+  if(!co.length)h+='<div class="cart-empty">No completed orders yet.</div>';else co.slice().reverse().forEach(o=>{h+=buildOrderCard(o,false);});
+  h+=`<div class="btn-row" style="margin-top:16px;"><button class="btn-primary gold" onclick="showPage('menu')">← New Order</button><button class="btn-primary blue" onclick="showPage('active')">🔥 Active</button></div>`;
+  h+='<button class="btn-primary" style="background:#ff4757;color:#fff;margin-top:10px;" onclick="clearAllOrders()">🗑️ Clear All</button>';
+  el.innerHTML=h;
+}
+
+function buildOrderCard(order,showC){
+  const exp=expandedOrders[order.id]?'expanded':'';const cls=order.status==='completed'?'order-card completed-card':'order-card';const tc=getTableClass(order.table);const isActive=order.status==='active';const isSet=order.isSet||false;
+  let h=`<div class="${cls} ${exp}"><div class="order-card-header" onclick="toggleOrderExpand('${order.id}')"><div class="och-left"><span class="order-id">#${order.id}</span><span class="order-table ${tc}">${order.table}</span>`;
+  if(isActive&&isSet)h+=`<span class="set-indicator">🍞☕ SET ✔</span>`;
+  h+=`<span class="order-time">${order.time}${order.completedTime?' → '+order.completedTime:''}</span></div><div style="display:flex;align-items:center;gap:8px;">`;
+  if(isActive)h+=`<span class="set-btn ${isSet?'done':''}" onclick="event.stopPropagation();toggleSet('${order.id}')">${isSet?'🍞☕ SET ✔':'SET'}</span>`;
+  h+=`<span class="order-total-small">$${order.total.toFixed(2)}</span><span class="expand-icon">▼</span></div></div><div class="order-card-body">`;
+  (order.items||[]).forEach(i=>{const itemTotal=i.price*i.qty+(i.eggCost||0)+(i.feeCost||0);
+    h+=`<div class="order-line"><span class="ol-name">${i.name}</span><span class="ol-qty">x${i.qty}</span><span class="ol-price">$${itemTotal.toFixed(2)}</span></div>`;
+    if(i.cook)h+=`<div class="order-line-sub">↳ ${i.cook}</div>`;
+    if(i.eggs&&i.eggs>0)h+=`<div class="order-line-egg">🥚 +${i.eggs} Egg${i.eggs>1?'s':''}${i.eggStyle?' ('+i.eggStyle+')':''} — $${(i.eggCost||0).toFixed(2)}</div>`;
+    if(i.freeDrink){let dt=`☕ Free: ${i.freeDrink}`;if(i.sugar&&i.sugar>0)dt+=` + ${i.sugar} sugar`;h+=`<div class="order-line-drink">${dt}</div>`;}else if(i.sugar&&i.sugar>0)h+=`<div class="order-line-drink">🍬 ${i.sugar} sugar</div>`;
+    if(i.feeCost&&i.feeCost>0)h+=`<div class="order-line-fee">🍽️ Eat-in fee +$${i.feeCost.toFixed(2)}</div>`;
+  });
+  if(order.sauces&&order.sauces.length)h+=`<div class="sauce-line">🫙 ${order.sauces.join(', ')}</div>`;
+  if(order.notes)h+=`<div class="notes-display">📝 ${order.notes}</div>`;
+  h+=`<div class="total-line grand" style="font-size:15px;margin-top:8px;border-top:1px solid rgba(255,255,255,.1);padding-top:8px;"><span>Total</span><span>$${order.total.toFixed(2)}</span></div>`;
+  if(showC)h+=`<button class="btn-complete" onclick="markComplete('${order.id}')">✅ Complete</button>`;
+  h+=`<button class="btn-delete-order" onclick="deleteOrder('${order.id}')">🗑️ Delete</button></div></div>`;return h;
+}
+
+function renderPriceEditor(){
+  const el=document.getElementById('page-prices');let h='';
+  h+=`<div class="cart-section-title">💲 Price Management</div>`;
+  h+=`<div class="price-menu-tab"><div class="price-menu-tab-btn ${priceEditorTab==='main'?'active':''}" onclick="priceEditorTab='main';renderPriceEditor()">📋 Main</div><div class="price-menu-tab-btn ${priceEditorTab==='takeaway'?'active':''}" onclick="priceEditorTab='takeaway';renderPriceEditor()">📦 Takeaway</div><div class="price-menu-tab-btn ${priceEditorTab==='saturday'?'active':''}" onclick="priceEditorTab='saturday';renderPriceEditor()">🏖️ Saturday</div></div>`;
+  h+=`<div id="priceSaveMsg" class="price-save-msg">✅ Synced!</div>`;
+  const data=priceEditorTab==='main'?mainMenu:priceEditorTab==='takeaway'?takeawayMenu:saturdayMenu;
+  h+='<div class="cart-section">';data.forEach(cat=>{h+=`<div class="price-cat-title">${cat.category}</div>`;cat.items.forEach(i=>{const orig=originalPrices[i.id];const changed=i.price!==orig;h+=`<div class="price-row"><span class="pr-name">${i.name}</span>${changed?`<span class="pr-original">$${orig.toFixed(2)}</span>`:''}<input class="pr-input ${changed?'changed':''}" type="number" step="0.1" min="0" value="${i.price.toFixed(2)}" onchange="updatePrice('${i.id}',this.value)"><button class="pr-reset" onclick="resetPrice('${i.id}')" title="Reset">↩</button></div>`;});});
+  h+='</div><div class="btn-row"><button class="btn-primary gold" onclick="showPage(\'menu\')">← Menu</button><button class="btn-primary" style="background:#ff4757;color:#fff;" onclick="resetAllPrices()">↩ Reset All</button></div>';el.innerHTML=h;
+}
+function updatePrice(id,val){const p=parseFloat(val);if(isNaN(p)||p<0)return;fbSavePrice(id,p);flashSaveMsg();}
+function resetPrice(id){fbRemovePrice(id);flashSaveMsg();}
+function resetAllPrices(){showModalDanger('Reset All','Reset ALL prices to defaults?',()=>{fbResetAllPrices();closeModal();flashSaveMsg();});}
+function flashSaveMsg(){const m=document.getElementById('priceSaveMsg');if(!m)return;m.classList.add('show');setTimeout(()=>m.classList.remove('show'),2000);}
+
+// ===== CART ACTIONS (LOCAL ONLY - cart is per-device) =====
+function addToCart(id){const item=allItemLookup[id];if(!item)return;if(needsSplit(id)){if(!cart[id])cart[id]=[];cart[id].push({eggs:0,eggStyle:null,cook:null,freeDrink:null,sugar:0});}else{if(!cart[id])cart[id]={qty:0,cook:null,eatInFee:false};cart[id].qty++;}renderMenu();updateBadges();}
+function menuMinus(id){if(!cart[id])return;if(Array.isArray(cart[id])){cart[id].pop();if(!cart[id].length)delete cart[id];}else{cart[id].qty--;if(cart[id].qty<=0)delete cart[id];}renderMenu();updateBadges();}
+function deleteSplitItem(id,idx){if(!cart[id]||!Array.isArray(cart[id]))return;cart[id].splice(idx,1);if(!cart[id].length)delete cart[id];renderCart();renderMenu();updateBadges();}
+function setSplitCook(id,idx,o){if(cart[id]&&cart[id][idx]){cart[id][idx].cook=cart[id][idx].cook===o?null:o;renderCart();}}
+function splitEggPlus(id,idx){if(cart[id]&&cart[id][idx]){cart[id][idx].eggs=(cart[id][idx].eggs||0)+1;renderCart();}}
+function splitEggMinus(id,idx){if(cart[id]&&cart[id][idx]&&cart[id][idx].eggs>0){cart[id][idx].eggs--;if(!cart[id][idx].eggs)cart[id][idx].eggStyle=null;renderCart();}}
+function setSplitEggStyle(id,idx,s){if(cart[id]&&cart[id][idx]){cart[id][idx].eggStyle=cart[id][idx].eggStyle===s?null:s;renderCart();}}
+function setSplitDrink(id,idx,d){if(cart[id]&&cart[id][idx]){cart[id][idx].freeDrink=cart[id][idx].freeDrink===d?null:d;renderCart();}}
+function splitSugarPlus(id,idx){if(cart[id]&&cart[id][idx]){cart[id][idx].sugar=(cart[id][idx].sugar||0)+1;renderCart();}}
+function splitSugarMinus(id,idx){if(cart[id]&&cart[id][idx]&&(cart[id][idx].sugar||0)>0){cart[id][idx].sugar--;renderCart();}}
+function simpleCartPlus(id){if(cart[id]&&!Array.isArray(cart[id])){cart[id].qty++;renderCart();updateBadges();}}
+function simpleCartMinus(id){if(!cart[id]||Array.isArray(cart[id]))return;if(cart[id].qty>1){cart[id].qty--;renderCart();updateBadges();}else simpleCartDelete(id);}
+function simpleCartDelete(id){delete cart[id];renderCart();renderMenu();updateBadges();}
+function setSimpleCook(id,o){if(cart[id]&&!Array.isArray(cart[id])){cart[id].cook=cart[id].cook===o?null:o;renderCart();}}
+function toggleSimpleFee(id){if(cart[id]&&!Array.isArray(cart[id])){cart[id].eatInFee=!cart[id].eatInFee;renderCart();}}
+function saucePlus(id){const s=sauceOptions.find(x=>x.id===id);if(!s)return;if(!sauceCart[id])sauceCart[id]={name:s.name,qty:0};sauceCart[id].qty++;renderPreview();}
+function sauceMinus(id){if(sauceCart[id]&&sauceCart[id].qty>0){sauceCart[id].qty--;if(!sauceCart[id].qty)delete sauceCart[id];renderPreview();}}
+function exDrinkPlus(id){const d=extrasDrinks.find(x=>x.id===id);if(!d)return;if(!extrasDrinkCart[id])extrasDrinkCart[id]={name:d.name,price:d.price,qty:0};extrasDrinkCart[id].qty++;renderCart();}
+function exDrinkMinus(id){if(extrasDrinkCart[id]&&extrasDrinkCart[id].qty>0){extrasDrinkCart[id].qty--;if(!extrasDrinkCart[id].qty)delete extrasDrinkCart[id];renderCart();}}
+function selectTable(v){selectedTable=v;renderPreview();}
+
+// ===== ORDER ACTIONS (SYNCED VIA FIREBASE) =====
+function toggleSet(oid){
+  const o=orders.find(x=>x.id===oid);
+  if(o){fbUpdateOrder(o,{isSet:!o.isSet});}
+}
+
+function confirmOrder(){
+  if(!selectedTable)return;const ids=Object.keys(cart).filter(id=>getCartQty(id)>0);const di=Object.keys(extrasDrinkCart).filter(k=>extrasDrinkCart[k].qty>0);if(!ids.length&&!di.length)return;
+  showModal('Confirm Order',`Place order for ${selectedTable}?`,()=>{
+    // Use transaction for counter to avoid race conditions
+    counterRef.transaction(current => (current || 0) + 1, (err, committed, snap) => {
+      if (err || !committed) { showToast('Error placing order', true); return; }
+      const newCounter = snap.val();
+      const oid = String(newCounter).padStart(3,'0');
+      const now=new Date();const ts=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');const all=[];
+      ids.forEach(id=>{const split=Array.isArray(cart[id]);const name=allItemLookup[id].name;const price=getItemUnitPrice(id);
+        if(split){const showIdx=cart[id].length>1;cart[id].forEach((u,idx)=>{const eq=u.eggs||0;const sg=u.sugar||0;all.push({name:name+(showIdx?' #'+(idx+1):''),price,qty:1,cook:u.cook||null,eggs:eq,eggStyle:u.eggStyle||null,eggCost:eq*EGG_PRICE,feeCost:0,freeDrink:(u.freeDrink&&u.freeDrink!=='None')?u.freeDrink:null,sugar:sg});});}
+        else{const c=cart[id];const sf=getServiceFee(id);const fee=c.eatInFee?sf*c.qty:0;all.push({name,price,qty:c.qty,cook:c.cook||null,eggs:0,eggStyle:null,eggCost:0,feeCost:fee,freeDrink:null,sugar:0});}
+      });
+      di.forEach(id=>all.push({name:extrasDrinkCart[id].name,price:extrasDrinkCart[id].price,qty:extrasDrinkCart[id].qty,cook:null,eggs:0,eggStyle:null,eggCost:0,feeCost:0,freeDrink:null,sugar:0}));
+      const si=Object.keys(sauceCart).filter(k=>sauceCart[k].qty>0);const sl=si.map(id=>{const s=sauceOptions.find(x=>x.id===id);return s.name+' x'+sauceCart[id].qty;});
+      const ft=calcFoodTotal(),dt=di.reduce((s,id)=>s+extrasDrinkCart[id].price*extrasDrinkCart[id].qty,0);
+      const order={id:oid,table:selectedTable,time:ts,items:all,sauces:sl,notes:orderNotes.trim()||null,total:ft+dt,status:'active',completedTime:null,isSet:false};
+      fbSaveOrder(order);
+      cart={};extrasDrinkCart={};sauceCart={};orderNotes='';selectedTable=null;
+      closeModal();showPage('active');renderMenu();
+      showToast('✅ Order #'+oid+' placed!');
+    });
+  });
+}
+
+function markComplete(oid){
+  showModal('Complete',`Mark #${oid} completed?`,()=>{
+    const o=orders.find(x=>x.id===oid);
+    if(o){const now=new Date();const ct=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');fbUpdateOrder(o,{status:'completed',completedTime:ct});}
+    closeModal();showToast('✅ Order #'+oid+' completed!');
+  });
+}
+function deleteOrder(oid){
+  const o=orders.find(x=>x.id===oid);if(!o)return;
+  showModalDanger('Delete',`Delete order #${oid}?`,()=>{
+    fbDeleteOrder(o);delete expandedOrders[oid];closeModal();
+    showToast('🗑️ Order #'+oid+' deleted!',true);
+  });
+}
+function clearAllOrders(){
+  showModalDanger('Clear All','Delete ALL records?',()=>{
+    fbClearAllOrders();expandedOrders={};closeModal();
+    showToast('🗑️ All orders cleared!',true);
+  });
+}
+function toggleOrderExpand(oid){expandedOrders[oid]=!expandedOrders[oid];const o=orders.find(x=>x.id===oid);if(o&&o.status==='active')renderActiveOrders();else renderCompletedOrders();}
+
+function showPage(p){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));const nb=document.querySelectorAll('.nav-btn');
+  switch(p){
+    case 'menu':document.getElementById('page-menu').classList.add('active');nb[0].classList.add('active');renderMenu();break;
+    case 'cart':document.getElementById('page-cart').classList.add('active');nb[1].classList.add('active');renderCart();break;
+    case 'preview':document.getElementById('page-preview').classList.add('active');nb[1].classList.add('active');renderPreview();break;
+    case 'active':document.getElementById('page-active').classList.add('active');nb[2].classList.add('active');renderActiveOrders();break;
+    case 'completed':document.getElementById('page-completed').classList.add('active');nb[3].classList.add('active');renderCompletedOrders();break;
+    case 'prices':document.getElementById('page-prices').classList.add('active');nb[4].classList.add('active');renderPriceEditor();break;
+  }
+}
+function updateBadges(){const cc=getTotalCartCount();const cb=document.getElementById('cartBadge');if(cc>0){cb.style.display='flex';cb.textContent=cc;}else cb.style.display='none';const ac=orders.filter(o=>o.status==='active').length;const ab=document.getElementById('activeBadge');if(ac>0){ab.style.display='flex';ab.textContent=ac;}else ab.style.display='none';}
+let modalCallback=null;
+function showModal(t,m,fn){document.getElementById('modalTitle').textContent=t;document.getElementById('modalMsg').textContent=m;modalCallback=fn;const b=document.getElementById('modalConfirmBtn');b.className='btn-sm btn-confirm';b.textContent='Confirm';b.onclick=()=>{if(modalCallback)modalCallback();};document.getElementById('confirmModal').classList.add('show');}
+function showModalDanger(t,m,fn){document.getElementById('modalTitle').textContent=t;document.getElementById('modalMsg').textContent=m;modalCallback=fn;const b=document.getElementById('modalConfirmBtn');b.className='btn-sm btn-danger';b.textContent='Delete';b.onclick=()=>{if(modalCallback)modalCallback();};document.getElementById('confirmModal').classList.add('show');}
+function closeModal(){document.getElementById('confirmModal').classList.remove('show');modalCallback=null;}
+renderMenu();updateBadges();
+</script>
+</body>
+</html>
